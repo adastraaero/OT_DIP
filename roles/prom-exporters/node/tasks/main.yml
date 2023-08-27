@@ -1,0 +1,82 @@
+---
+
+- name: Создаем пользователя для работы node_exporter
+  user:
+    name: prom_exporter
+    system: true
+
+- block:
+
+    - name: Скачиваем node_exporter
+      become: false
+      get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_version }}/node_exporter-{{ node_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/node_exporter-{{ node_version }}.linux-amd64.tar.gz"
+        checksum: "sha256:{{ exporter_checksum }}"
+      register: _download_archive
+      until: _download_archive is succeeded
+      retries: 5
+      delay: 2
+      # run_once: true # <-- this cannot be set due to multi-arch support
+      delegate_to: localhost
+      check_mode: false
+
+    - name: Разархивируем node_exporter
+      become: false
+      unarchive:
+        src: "/tmp/node_exporter-{{ node_version }}.linux-amd64.tar.gz"
+        dest: "/tmp"
+        creates: "/tmp/node_exporter-{{ node_version }}.linux-amd64/node_exporter"
+      delegate_to: localhost
+      check_mode: false
+
+    - name: Копируем node_exporter
+      copy:
+        src: "/tmp/node_exporter-{{ node_version }}.linux-amd64/node_exporter"
+        dest: /usr/local/bin/
+        mode: 0755
+        owner: root
+        group: root		
+  when: not node_exporter_skip_install | default(false)
+
+- name: Создаем системную службу для node_exporter из шаблона
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart node_exporter
+
+
+- name: Копируем описание служб для ufw
+  copy:
+    src: "{{ item }}"
+    dest: /etc/ufw/applications.d/
+    mode: 0755
+  with_items:
+    - node_exp
+
+- name: Разрешаем необходимые для работы Prometheus службы
+  community.general.ufw:
+    rule: allow
+    name: "{{ item }}"
+  with_items:
+    - NODE_EXP
+  notify:
+    - reload ufw      
+
+- name: Редактируем конфигурационный файл prometheus
+  delegate_to: logmon
+  blockinfile:
+    path: /etc/prometheus/prometheus.yml
+    block: |2
+        - job_name: 'node_exporter_clients'
+          scrape_interval: 5s
+          static_configs:
+            - targets:
+              {% for host in vars['play_hosts'] %}
+      - {{ hostvars[host]['ansible_default_ipv4']['address'] }}:9100
+              {% endfor %}
+  notify: restart prometheus

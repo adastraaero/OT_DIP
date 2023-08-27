@@ -1,0 +1,83 @@
+---
+
+- name: Указываем ip адрес для kibana
+  lineinfile:
+    path: "{{ kibana_conf }}"
+    regexp: '#server.host:'
+    line: 'server.host: "{{ server_ip }}"'
+
+- name: Запускаем kibana
+  service:
+    name: kibana
+    state: started
+
+
+- name: Запускаем ElasticSearch
+  service:
+    name: elasticsearch
+    state: started
+
+
+- name: Check system information
+  shell:
+      "lsb_release -a"
+  register: os_info
+
+- debug:
+    msg: "{{os_info.stdout_lines}}"
+
+
+
+
+
+- name: Сбрасываем пароль для Elastic
+  shell: "/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b" 
+  register: ek_res
+
+- name: Сохраняем новый пароль в переменной
+  set_fact:
+    elk_passwd: "{{ ek_res.stdout_lines[-1] | regex_replace('^New value: (.*)$', '\\1') }}"
+
+- name: Копируем файлы конфигов logstash
+  copy:
+    src: "{{ item }}"
+    dest: /etc/logstash/conf.d/
+    mode: 0755
+  with_items:
+    - input.conf
+    - filter.conf
+  notify:
+    - reload logstash
+
+- name: Копируем файлы конфигов logstash
+  template:
+    src: output.conf.j2
+    dest: /etc/logstash/conf.d/output.conf
+    mode: 0755
+  notify:
+    - reload logstash
+
+- shell: /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+  register: elk_token
+
+- name: Выводим токен на экран
+  pause:
+    prompt: |
+      Перейдите по ссылке http://{{ server_ip }}:5601, и введите токен
+      {{ elk_token.stdout }}
+      После нажмите Enter.
+
+- shell: /usr/share/kibana/bin/kibana-verification-code
+  register: elk_kibana_ver_code
+
+- name: Выводим код проверки
+  pause:
+    prompt: |
+      На странице проверки верификационного кода введите
+      {{ elk_kibana_ver_code.stdout }}
+      После нажмите Enter.
+
+- debug:
+    msg: |
+     Пароль для пользователя elastic
+     {{ elk_passwd }}

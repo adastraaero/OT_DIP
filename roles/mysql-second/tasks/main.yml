@@ -1,0 +1,72 @@
+---
+
+- name: Задаем значения для некоторых опций mysqld.cnf
+  lineinfile:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    insertafter: \[mysqld\]
+    line: "{{ item }}"
+  loop:
+    - server-id = 2
+    - log_bin = mysql-bin
+    - log_error = mysql-bin.err
+    - binlog_ignore_db = information_schema,mysql,test
+
+- name: Задаем значение для опции bind-address
+  replace:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp: '^bind-address(\s*)=.*$'
+    replace: 'bind-address\1= {{ ansible_ssh_host }}'
+
+- name: Перезапускаем MySQL Server
+  systemd:
+    name: mysql
+    state: restarted
+
+- name: Устанавливаем python-pip
+  package:
+    name: python3-pip
+    state: present
+
+- name: Устанавливаем PyMySQL
+  pip:
+    name: PyMySQL
+    state: present
+
+- name: Настраиваем репликацию на второй ноде
+  mysql_query:
+    query: '{{ item }}'
+    login_unix_socket: /run/mysqld/mysqld.sock
+  loop:
+    - stop slave
+    - 'change master to master_host = "{{ hostvars.sqlmaster.ansible_ssh_host }}", master_user = "replmy", master_password = "password", master_log_file = "{{ hostvars.sqlmaster.mysql_info.master_status.File }}", master_log_pos = {{ hostvars.sqlmaster.mysql_info.master_status.Position }}'
+    - start slave
+
+- name: Создаем учетную запись для репликации
+  mysql_query:
+    query: CREATE USER 'replmy'@'{{ hostvars.sqlmaster.ansible_ssh_host }}' IDENTIFIED WITH mysql_native_password BY "{{mysql_repl_password}}";
+    login_unix_socket: /run/mysqld/mysqld.sock
+  ignore_errors: yes
+
+- name: Разрешаем репликацию для второго хоста
+  mysql_query:
+    query: 'GRANT replication slave ON *.* TO "replmy"@"{{ hostvars.sqlmaster.ansible_ssh_host }}"'
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+- name: Блокируем запись в базу данных
+  mysql_query:
+    query: '{{ item }}'
+    login_unix_socket: /run/mysqld/mysqld.sock
+  loop:
+    - FLUSH TABLES WITH READ LOCK
+    - SET GLOBAL read_only = ON
+
+- name: Запрашиваем статус мастера
+  mysql_info:
+    login_user: root
+    login_unix_socket: /run/mysqld/mysqld.sock
+  register: mysql_info
+
+- name: Снимаем блокировке на запись в базу данных
+  mysql_query:
+    query: SET GLOBAL read_only = OFF
+    login_unix_socket: /run/mysqld/mysqld.sock

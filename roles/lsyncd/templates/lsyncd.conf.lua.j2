@@ -1,0 +1,24 @@
+settings {
+    logfile = "/var/log/lsyncd/lsyncd.log",
+    statusFile = "/var/log/lsyncd/lsyncd.stat",
+    statusInterval = 2,
+    insist = true,
+    nodaemon = false,
+}
+
+sync {
+    default.rsyncssh,
+    exclude = { '*.bak' , '*.tmp', '*.swp' },
+    source = "/var/www/{{ site_name }}",
+    host = "root@{{ hostvars[item].ansible_ssh_host }}",
+    targetdir = "/var/www/{{ site_name }}",
+    --delay = 10,
+    rsync = {
+        _extra = { "-a" },
+        update=true,
+        times=true,
+        archive=true,
+        owner=true,
+        chown="www-data:www-data",
+    }
+}

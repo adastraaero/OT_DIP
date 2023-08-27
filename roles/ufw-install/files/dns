@@ -1,0 +1,4 @@
+[DNS]
+title=DNS
+description=just DNS
+ports=53/tcp

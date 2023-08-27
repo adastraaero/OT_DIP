@@ -1,0 +1,4 @@
+[NODE_EXP]
+title=NODE_EXP
+description=node_exporter for Prometheus
+ports=9100/tcp

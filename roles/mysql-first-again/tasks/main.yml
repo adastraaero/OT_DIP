@@ -1,0 +1,11 @@
+---
+
+- name: Настраиваем репликацию на первой ноде
+  mysql_query:
+    query: '{{ item }}'
+    login_unix_socket: /run/mysqld/mysqld.sock
+  loop:
+    - stop slave
+    - 'change master to master_host = "{{ hostvars.sqlslave.ansible_ssh_host }}", master_user = "replmy", master_password = "{{mysql_repl_password}}", master_log_file = "{{ hostvars.sqlslave.mysql_info.master_status.File }}", master_log_pos = {{ hostvars.sqlslave.mysql_info.master_status.Position }}'
+    - start slave
+

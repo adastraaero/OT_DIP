@@ -1,0 +1,6 @@
+---
+
+- name: Перезапускаем keepalived
+  systemd:
+    name: keepalived
+    state: restarted

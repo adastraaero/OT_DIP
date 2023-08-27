@@ -1,0 +1,48 @@
+---
+
+- file:
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - /scripts
+    - '{{ backup_destination }}/mysql'
+    - '{{ backup_destination }}/daily'
+    - '{{ backup_destination }}/weekly'
+    - '{{ backup_destination }}/archive'
+
+- template:
+    src: '{{ item }}.sh.j2'
+    dest: '/scripts/{{ item }}.sh'
+    mode: 0700
+    owner: root
+  loop:
+    - backup_mysql
+    - backup_www
+
+- mysql_query:
+    query: '{{ item }}'
+    login_unix_socket: /run/mysqld/mysqld.sock
+  ignore_errors: yes
+  loop:
+    - CREATE USER '{{ backup_user }}'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ backup_user_pass }}';
+    - GRANT SELECT, SHOW VIEW, RELOAD, REPLICATION CLIENT, EVENT, TRIGGER, LOCK TABLES, PROCESS ON *.* TO '{{ backup_user }}'@localhost;
+
+- cron:
+    name: Start MySQL Backup
+    job: "/scripts/backup_mysql.sh"
+    user: root
+    minute: "0"
+    hour: "1"
+    day: "*"
+    month: "*"
+    weekday: "*"
+
+- cron:
+    name: Start WWW Backup
+    job: "/scripts/backup_www.sh"
+    user: root
+    minute: "0"
+    hour: "2"
+    day: "*"
+    month: "*"
+    weekday: "*"

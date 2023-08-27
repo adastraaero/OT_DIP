@@ -1,0 +1,59 @@
+---
+
+- name: Устанавливаем lsyncd
+  package:
+    name: lsyncd
+    state: present
+
+- name: Запрещаем запуск lsyncd
+  systemd:
+    name: lsyncd
+    enabled: false
+    state: stopped
+
+- name: Генерируем ключи SSH
+  openssh_keypair:
+    path: /root/.ssh/id_ed25519
+    owner: root
+    state: present
+    type: ed25519
+    size: 2048
+    force: yes
+  register: ssh_pubkey
+
+- name: Устанавливаем публичные ключи
+  authorized_key:
+    user: root
+    state: present
+    key: "{{ hostvars[item].ssh_pubkey.public_key }}"
+  with_items:
+    - "{{ groups['dbservers'] }}"
+  when: item != '{{ inventory_hostname }}'
+
+- name: Добавляем fingerprint в known_hosts
+  shell: "ssh-keyscan {{ hostvars[item].ansible_ssh_host }} >> ~/.ssh/known_hosts"
+  with_items:
+    - "{{ groups['dbservers'] }}"
+  when: item != '{{ inventory_hostname }}'
+
+- name: Создаем рабочих каталогов
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /etc/lsyncd
+    - /var/log/lsyncd
+
+- name: Копируем конфигурационный файл для lsyncd
+  template:
+    src: lsyncd.conf.lua.j2
+    dest: /etc/lsyncd/lsyncd.conf.lua
+  with_items:
+    - "{{ groups['dbservers'] }}"
+  when: item != '{{ inventory_hostname }}'
+
+#- debug: 
+#    msg: "{{ hostvars[item].ansible_ssh_host }}" 
+#  with_items:
+#    - "{{ groups['all'] }}"
+#  when: item != '{{ inventory_hostname }}'

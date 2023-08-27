@@ -1,0 +1,30 @@
+global_defs {
+    enable_script_security
+}
+
+vrrp_script nginx_check {
+    script "/usr/bin/curl http://127.0.0.1"
+    interval 5
+    user www-data
+}
+
+vrrp_instance web {
+    state {% if inventory_hostname == 'sqlmaster' %}MASTER{% else %}BACKUP{% endif %}
+
+    interface {{ ansible_default_ipv4.interface }}
+    virtual_router_id 254
+    priority {% if inventory_hostname == 'sqlmaster' %}100{% else %}50{% endif %}
+
+    advert_int 2
+    authentication {
+        auth_type PASS
+        auth_pass {{ keep_auth_pass }}
+    }
+    virtual_ipaddress {
+        172.17.50.140
+    }
+    track_script {
+        nginx_check
+    }
+    notify /etc/keepalived/notify-web.sh root
+}

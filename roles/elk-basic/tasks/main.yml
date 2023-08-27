@@ -1,0 +1,37 @@
+---
+
+- name: Настраиваем часовой пояс
+  community.general.timezone:
+   name: Europe/Moscow
+
+
+- name: Обновить кэш репозитория Deb
+  apt:
+    update_cache: yes
+
+
+
+- name: устанавливаем необходимое ПО
+  apt:
+    name: default-jdk
+    state: present
+
+
+- name: Копируем файлы для установки ELK
+  copy:
+    src: "{{ item }}"
+    dest: /tmp/
+    mode: 0755
+  with_items:
+    - kibana-8.9.0-amd64.deb
+    - logstash-8.9.0-amd64.deb
+    - elasticsearch-8.9.0-amd64.deb
+
+
+- name: Устанавливаем ELK
+  apt:
+    deb: /tmp/{{ item }}
+  with_items:
+    - kibana-8.9.0-amd64.deb
+    - logstash-8.9.0-amd64.deb
+    - elasticsearch-8.9.0-amd64.deb

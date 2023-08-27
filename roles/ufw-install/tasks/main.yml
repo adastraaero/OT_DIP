@@ -1,0 +1,47 @@
+---
+#- name: Display all variables/facts known for a host
+#  ansible.builtin.debug:
+#    var: hostvars[inventory_hostname].ansible_ssh_host
+
+- name: Копируем описание служб для ufw
+  copy:
+    src: "{{ item }}"
+    dest: /etc/ufw/applications.d/
+    mode: 0755
+  with_items:
+    - dhcp
+    - dns
+    - mysql
+
+- name: Разрешаем необходимые для работы службы  
+  community.general.ufw:
+    rule: allow
+    name: "{{ item }}"
+  with_items:
+    - OpenSSH
+    - DHCP
+    - DNS
+    - MYSQL  
+    - Nginx Full  
+    
+- name: Включаем ufw
+  community.general.ufw:
+    state: enabled
+
+- name: Разрешаем доступ с адресов кластера для работы VRRP
+  ufw:
+    rule: allow
+    src: '{{ item }}'
+  with_items:
+    - 172.17.50.116/32
+    - 172.17.50.117/32
+    - 172.17.50.140/32  
+
+
+
+
+
+
+- name: Перечитываем конфиг ufw
+  ufw:
+    state: reloaded

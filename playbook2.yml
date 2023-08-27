@@ -1,0 +1,49 @@
+---
+
+#- name: Установка ELK
+#  hosts: monservers
+#  gather_facts: yes
+#  become: true
+#  roles:
+#    - role: elk-basic
+
+#- name: Настройка ELK
+#  hosts: monservers
+#  gather_facts: yes
+#  become: true
+#  roles:
+#    - role: elk-config
+      
+#- name: Устанавливаем Filebeat клиент
+#  hosts: dbservers
+#  gather_facts: no
+#  become: true
+#  roles:
+#    - role: filebeat-install      
+
+#- name: Run Backup
+#  hosts: sqlmaster
+#  gather_facts: no
+#  roles:
+#    - role: backup
+
+#- name: Установка экспортеров Prometheus
+#  hosts: dbservers
+#  gather_facts: yes
+#  become: true
+#  roles:
+#    - role: prom-exporters/node
+
+- name: Установка Grafana
+  hosts: monservers
+  gather_facts: no
+  roles:
+    - role: grafana
+
+
+#- name: Установка ELK
+#  hosts: monservers
+#  gather_facts: yes
+#  become: true
+#  roles:
+#    - role: elk-basic

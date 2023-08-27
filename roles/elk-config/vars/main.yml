@@ -1,0 +1,4 @@
+---
+kibana_conf: /etc/kibana/kibana.yml
+#kibana_port: 5601
+server_ip: 172.17.50.100

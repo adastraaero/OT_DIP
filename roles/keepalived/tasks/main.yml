@@ -1,0 +1,31 @@
+---
+
+- name: Устанавливаем keepalived
+  package:
+    name: keepalived
+    state: present
+
+- name: Выполняем запуск keepalived
+  systemd:
+    name: keepalived
+    enabled: true
+    state: started
+
+- name: Переносим конфигурационный файл keepalived
+  template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+  notify:
+    - Перезапускаем keepalived
+
+- name: Копируем скрипт для notify keepalived
+  copy:
+    src: notify-web.sh
+    dest: /etc/keepalived/notify-web.sh
+    mode: 0754
+  notify:
+    - Перезапускаем keepalived
+
+- debug:
+    var: inventory_hostname
+

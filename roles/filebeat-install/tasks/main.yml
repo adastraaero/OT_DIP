@@ -1,0 +1,36 @@
+---
+
+
+- name: Обновить кэш репозитория Deb
+  apt:
+    update_cache: yes
+
+
+- name: Копируем файлы для установки Filebeat
+  copy:
+    src: "{{ item }}"
+    dest: /tmp/
+    mode: 0755
+  with_items:
+    - filebeat-8.9.0-amd64.deb
+
+
+- name: Устанавливаем Filebeat
+  apt:
+    deb: /tmp/{{ item }}
+  loop:
+    - filebeat-8.9.0-amd64.deb
+
+- name: Запускаем Filebeat
+  service:
+    name: filebeat
+    state: started
+
+- name: Переносим конфигурационный файл Filebeat
+  template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+  notify:
+    - reload filebeat
+
+

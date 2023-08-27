@@ -1,0 +1,5 @@
+---
+
+backup_user: backup
+backup_user_pass: backup123
+backup_destination: /backup

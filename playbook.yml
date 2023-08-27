@@ -1,0 +1,108 @@
+---
+
+- name: Устанавливаем MySQL Server
+  hosts: dbservers
+  gather_facts: no
+  become: true
+  roles:
+    - role: mysql-install
+
+- name: Настраиваем первую ноду кластера
+  hosts: sqlmaster
+  gather_facts: no
+  become: true
+  roles:
+    - role: mysql-first
+
+- name: Настраиваем вторую ноду кластера
+  hosts: sqlslave
+  gather_facts: no
+  become: true
+  roles:
+    - role: mysql-second
+
+- name: Настраиваем первую ноду кластера в качестве slave
+  hosts: sqlmaster
+  gather_facts: no
+  become: true
+  roles:
+    - role: mysql-first-again
+
+- name: Выполняем установку и базовую настройку Nginx + PHP
+  hosts: dbservers
+  gather_facts: no
+  roles:
+    - role: nginx
+
+- name: Выполняем установку и настройку Lsyncd
+  hosts: dbservers
+  gather_facts: no
+  roles:
+    - role: lsyncd
+
+- name: Устанавливаем Wordpress
+  hosts: sqlmaster
+  gather_facts: no
+  roles:
+    - role: wordpress
+
+- name: Устанавливаем и настраиваем keepalived
+  hosts: dbservers
+  gather_facts: yes
+  roles:
+    - role: keepalived
+
+- name: Настраиваем UFW
+  hosts: dbservers
+  gather_facts: no
+  become: true
+  roles:
+    - role: ufw-install
+
+- name: Установка Prometheus
+  hosts: monservers
+  gather_facts: yes
+  become: true
+  roles:
+    - role: prom-basic
+
+- name: Установка ELK
+  hosts: monservers
+  gather_facts: yes
+#  become: true
+  roles:
+    - role: elk-basic
+
+- name: Настройка ELK
+  hosts: monservers
+  gather_facts: yes
+  become: true
+  roles:
+    - role: elk-config
+      
+- name: Устанавливаем Filebeat клиент
+  hosts: dbservers
+  gather_facts: no
+  become: true
+  roles:
+    - role: filebeat-install
+
+- name: Run Backup
+  hosts: sqlmaster
+  gather_facts: no
+  roles:
+    - role: backup
+
+- name: Установка экспортеров Prometheus
+  hosts: dbservers
+  gather_facts: yes
+  become: true
+  roles:
+    - role: prom-exporters/node
+
+- name: Установка Grafana
+  hosts: monservers
+  gather_facts: no
+  become: true  
+  roles:
+    - role: grafana

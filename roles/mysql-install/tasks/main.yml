@@ -1,0 +1,17 @@
+---
+
+- name: Обновить кэш репозитория Deb
+  apt:
+    update_cache: yes
+
+- name: Установка MySQL-сервера
+  package:
+    name: mysql-server
+    state: present
+
+- name: Запуск службы MySQL
+  systemd:
+    name: mysql
+    state: started
+    enabled: yes
+

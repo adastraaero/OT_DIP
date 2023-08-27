@@ -1,0 +1,17 @@
+---
+
+- name: restart node_exporter
+  systemd:
+    daemon_reload: true
+    name: node_exporter
+    state: restarted
+
+- name: reload ufw
+  ufw:
+    state: reloaded
+
+- name: restart prometheus
+  delegate_to: logmon
+  systemd:
+    name: prometheus
+    state: restarted

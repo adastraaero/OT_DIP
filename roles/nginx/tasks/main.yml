@@ -1,0 +1,117 @@
+---
+
+- name: Создаем закрытый ключ (key)
+  openssl_privatekey:
+    path: '/etc/ssl/{{ site_name }}.key'
+    size: 2048
+
+- name: Создаем файл запроса (csr)
+  openssl_csr:
+    path: '/etc/ssl/{{ site_name }}.csr'
+    privatekey_path: '/etc/ssl/{{ site_name }}.key'
+    country_name: RU
+    locality_name: Russian Federation
+    organization_name: OTUS
+    email_address: 'master@{{ site_name }}'
+    common_name: '{{ site_name }}'
+    subject_alt_name:
+      - "DNS:{{ site_name }}"
+      - "DNS:www.{{ site_name }}"
+
+- name: Создаем самоподписанный сертификат (crt)
+  openssl_certificate:
+    path: '/etc/ssl/{{ site_name }}.crt'
+    csr_path: '/etc/ssl/{{ site_name }}.csr'
+    privatekey_path: '/etc/ssl/{{ site_name }}.key'
+    provider: selfsigned
+
+- name: Set timezone to Europe/Moscow
+  community.general.timezone:
+   name: Europe/Moscow
+
+- name: Install required software
+  apt:
+    name: '{{ item }}'
+    state: present
+  loop:
+    - nginx
+    - mysql-client  
+    - php8.1-fpm
+    - php-mysql
+    - php-curl
+    - php-gd
+    - php-intl
+    - php-mbstring
+    - php-soap
+    - php-xml
+    - php-xmlrpc
+    - php-zip  
+
+- name: Start nginx
+  systemd:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Create webroot
+  file:
+    state: directory
+    path: /var/www/{{ site_name }}
+    owner: www-data
+    group: www-data
+    mode: 0755
+
+- name: Copy index.html
+  copy:
+    src: index.html
+    dest: /var/www/{{ site_name }}/
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+- name: Copy basic info.php
+  copy:
+    src: info.php
+    dest: /var/www/{{ site_name }}/
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+- name: Disable the default site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Update nginx confs for WordPress + PHP
+  template: 
+    src: default-site.conf
+    dest: /etc/nginx/sites-available/{{ site_name }}.conf
+    owner: www-data
+    group: www-data
+    mode: 0777
+
+#- name: Создаём файл для настройки SSH
+#  ansible.builtin.file:
+#    path: "/root/.ssh/config"
+#    state: touch
+
+#- name: откл. проверку ключей
+#  lineinfile:
+#    path: /root/.ssh/config
+#    line: Host *
+
+#- name: откл. проверку ключей 2
+#  lineinfile:
+#    path: /root/.ssh/config
+#    insertafter: "Host *"
+#    line: StrictHostKeyChecking no
+
+- name: Enable site
+  file:
+    src: /etc/nginx/sites-available/{{ site_name }}.conf
+    dest: /etc/nginx/sites-enabled/{{ site_name }}.conf
+    owner: www-data
+    group: www-data
+    state: link
+  notify:
+    - restart nginx

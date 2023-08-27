@@ -1,0 +1,6 @@
+---
+
+- name: Перезапускаем сервис lsyncd
+  systemd:
+    name: lsyncd
+    state: restarted

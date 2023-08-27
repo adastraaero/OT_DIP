@@ -1,0 +1,4 @@
+[MYSQL]
+title=MYSQL
+description=opensource database
+ports=33060,3306/tcp
