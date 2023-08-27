@@ -21,7 +21,7 @@
 
 ### Схема стенда для проекта
 
-![Image 8](images/OTUS_scheme.jpg)
+![Image 8](images/OTUS_scheme.jpg | width=100 )
 
 
 
