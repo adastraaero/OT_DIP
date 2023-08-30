@@ -52,12 +52,12 @@
   roles:
     - role: keepalived
 
-- name: Настраиваем UFW
-  hosts: dbservers
-  gather_facts: no
-  become: true
-  roles:
-    - role: ufw-install
+#- name: Настраиваем UFW
+#  hosts: dbservers
+#  gather_facts: no
+#  become: true
+#  roles:
+#    - role: ufw-install
 
 - name: Установка Prometheus
   hosts: monservers
@@ -106,3 +106,11 @@
   become: true  
   roles:
     - role: grafana
+
+
+- name: Настраиваем UFW
+  hosts: dbservers
+  gather_facts: no
+  become: true
+  roles:
+    - role: ufw-install

@@ -5,9 +5,9 @@
    name: Europe/Moscow
 
 
-- name: Обновить кэш репозитория Deb
-  apt:
-    update_cache: yes
+#- name: Обновить кэш репозитория Deb
+#  apt:
+#    update_cache: yes
 
 
 
@@ -15,6 +15,7 @@
   apt:
     name: default-jdk
     state: present
+
 
 
 - name: Копируем файлы для установки ELK
